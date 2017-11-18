@@ -73,6 +73,9 @@ int fs_create(char* input_file, char* simul_file){
 	 */
 
     memset(file_data, 0, sizeof(file_data));
+	memset (&sector0, 0, sizeof(struct sector_0));
+	memset (&sectorD, 0, sizeof(struct sector_data));
+	memset (&file, 0, sizeof(struct file_dir_entry));
 
     ds_read_sector(0, (void*)&sector0, SECTOR_SIZE);
 
@@ -83,6 +86,7 @@ int fs_create(char* input_file, char* simul_file){
         printf("Caminho passado é apenas um diretório...\n");
         return ret;
     }
+
 
 	// 'file' é um arquivo
     file.dir = 0;
@@ -109,7 +113,6 @@ int fs_create(char* input_file, char* simul_file){
 
 	// Salvamos em 'file.sector_start' qual o setor inicial que contém os dados
 	file.sector_start = sector0.free_sectors_list;
-    sector0.free_sectors_list = NULL;
 
     // Enquanto houverem setores na varíavel 'qtd_setores' utilizamos o método
     //fread() para ler 508 bytes do arquivo e alocá-los no setor de dados
@@ -127,21 +130,24 @@ int fs_create(char* input_file, char* simul_file){
         *continuamos a ler o arquivo e escrever nos setores
         *** A varíavel contadora decrementa e setamos 'prox_setor' para o próximo setor livre
         */
-        while( (qtd_setores > 0) && (!feof(fp)) ){
+        while(qtd_setores > 0){
             // A variável 'prox_setor' recebe o próximo setor, partindo da lista de setores livres
             prox_setor = sectorD.next_sector;
-
+            ds_read_sector(prox_setor, (void*)&sectorD, SECTOR_SIZE);
             fread(file_data, 508, 1, fp);
             ds_write_sector(prox_setor, file_data, SECTOR_SIZE);
             qtd_setores--;
-            ds_read_sector(sectorD.next_sector, (void*)&sectorD, SECTOR_SIZE);
         }
-        fclose(fp);
+		// Setor 0 recebe o próximo setor livre
+        sector0.free_sectors_list = sectorD.next_sector;
+		printf("asdasdasd %d\n",sector0.free_sectors_list);
 
-        // Setor 0 recebe o próximo setor livre
-        //sector0.free_sectors_list = prox_setor;
-        
+		// Último setor do arquivo alocado aponta para o setor 0
+		sectorD.next_sector = 0;
     }
+
+	// Fechamos o arquivo
+    fclose(fp); fp = NULL;
 
 	/**
 	 * FIM do trecho onde tratamos o caminho do arquivo simulado 
@@ -277,10 +283,11 @@ int fs_free_map(char *log_f){
 	ds_read_sector(0, (void*)&sector0, SECTOR_SIZE);
 	
 	next = sector0.free_sectors_list;
-
+	printf("   %d   ",next);
 	while(next){
 		/* The sector is in the free list, mark with 1. */
 		sector_array[next] = 1;
+		
 		
 		/* move to the next free sector. */
 		ds_read_sector(next, (void*)&sector, SECTOR_SIZE);
@@ -318,7 +325,7 @@ int fs_free_map(char *log_f){
 
 	ds_stop();
 
-	printf("Free space %d kbytes.\n", free_space/1024);
+	printf("Free space %d bytes.\n", free_space);
 	
 	return 0;
 }

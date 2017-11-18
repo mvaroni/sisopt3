@@ -27,7 +27,7 @@ int main(int argc, char **argv){
 			fs_format();
 		}else if( !strcmp(argv[1], "-create")){
 			if(argc<4){
-    		    printf("\n%s -create <disk file> <simulated file>\n", argv[0]);
+    		    printf("%s -create <disk file> <simulated file>\n", argv[0]);
             }else{
                 fs_create(argv[2], argv[3]);
             }
@@ -40,7 +40,7 @@ int main(int argc, char **argv){
 	
 	/* Create a map of used/free disk sectors. */
 	fs_free_map("log.dat");
-    printf("Teste!\n");
+
 	return 	0; 
 }
 	
